@@ -124,7 +124,8 @@ class ExplainResponse(BaseModel):
 class DemoScenarioRequest(BaseModel):
     scenario: str  # NORMAL_HOME, SINGLE_SPIKE, PERSISTENT_LEAK, BURST_USE, FARM_IRRIGATION, DATA_QUALITY
     seed: Optional[int] = 42
-    meter_id: Optional[str] = None
+
+    model_config = {"extra": "forbid"}
 
 class DemoScenarioResult(BaseModel):
     scenario: str

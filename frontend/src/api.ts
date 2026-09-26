@@ -107,10 +107,10 @@ export const api = {
     }),
 
   // Demo Scenarios
-  runDemoScenario: (scenario: string, seed: number = 42, meterId?: string) =>
+  runDemoScenario: (scenario: string, seed: number = 42) =>
     request<DemoScenarioResult>('/api/demo/scenario', {
       method: 'POST',
-      body: JSON.stringify({ scenario, seed, meter_id: meterId }),
+      body: JSON.stringify({ scenario, seed }),
     }),
 
   // Dashboard

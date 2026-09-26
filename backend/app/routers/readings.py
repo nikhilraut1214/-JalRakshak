@@ -38,19 +38,19 @@ def submit_reading(
     return ApiResponse(data=reading)
 
 @router.post("/upload", response_model=ApiResponse[Dict[str, Any]])
-async def upload_readings_csv(
+def upload_readings_csv(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     # Check filename
-    if not file.filename.endswith(".csv"):
+    if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Uploaded file must be a CSV file."
         )
 
-    content = await file.read()
+    content = file.file.read()
     # Reject oversized CSV (e.g. > 10MB)
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(

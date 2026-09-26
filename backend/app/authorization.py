@@ -33,13 +33,36 @@ def verify_meter_access(user: User, meter: Meter) -> None:
     if not can_access_meter(user, meter):
         raise AuthorizationError("You do not have permission to access this meter.")
 
+def get_authorized_meters_query(db, user: User):
+    """
+    Returns an optimized SQLAlchemy query for meters accessible by the user,
+    enforcing the identical RBAC matrix at the SQL level:
+    1. ADMINISTRATOR: All meters in the system.
+    2. RESIDENT: Only meters owned by the user (owner_id == user.id).
+    3. SOCIETY_MANAGER, FARM_OPERATOR, INSTITUTION_ADMIN:
+       Meters owned by user OR belonging to user's organization.
+    """
+    if user.role == "ADMINISTRATOR":
+        return db.query(Meter)
+    elif user.role in ["SOCIETY_MANAGER", "FARM_OPERATOR", "INSTITUTION_ADMIN"]:
+        if user.organization_id:
+            return db.query(Meter).filter(
+                (Meter.owner_id == user.id) |
+                (Meter.organization_id == user.organization_id)
+            )
+        else:
+            return db.query(Meter).filter(Meter.owner_id == user.id)
+    else:
+        return db.query(Meter).filter(Meter.owner_id == user.id)
+
 def verify_alert_access(user: User, alert: Alert) -> None:
     """
     Checks if a user is authorized to view or mutate an alert.
     Alert authorization follows the underlying meter's authorization.
+    Fails closed if the alert has no associated meter.
     """
     if not alert.meter:
-        return
+        raise AuthorizationError("Alert has no associated meter and cannot be accessed.")
     verify_meter_access(user, alert.meter)
 
 def verify_role_in(user: User, allowed_roles: list[str]) -> None:

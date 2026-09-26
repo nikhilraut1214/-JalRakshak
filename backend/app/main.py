@@ -19,14 +19,26 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for frontend
+# Explicit CORS origin allowlist parsed from environment configuration
+allowed_origins = [
+    origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+# Lightweight defense-in-depth API security headers
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    return response
 
 # Exception handlers ensuring standard error envelope
 @app.exception_handler(StarletteHTTPException)
@@ -39,7 +51,8 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
                 "code": f"HTTP_{exc.status_code}",
                 "message": exc.detail if isinstance(exc.detail, str) else str(exc.detail)
             }
-        }
+        },
+        headers=exc.headers
     )
 
 @app.exception_handler(RequestValidationError)

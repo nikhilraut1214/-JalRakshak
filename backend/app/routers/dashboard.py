@@ -1,5 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from backend.app.database import get_db
 from backend.app.models import Meter, Reading, Alert, AlertEvidence, User
@@ -7,7 +8,7 @@ from backend.app.schemas import (
     ApiResponse, DashboardSummaryResponse, EvidenceDetail
 )
 from backend.app.auth import get_current_user
-from backend.app.authorization import can_access_meter
+from backend.app.authorization import get_authorized_meters_query
 from backend.app.config import settings
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
@@ -17,8 +18,7 @@ def get_dashboard_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    all_meters = db.query(Meter).all()
-    auth_meters = [m for m in all_meters if can_access_meter(current_user, m)]
+    auth_meters = get_authorized_meters_query(db, current_user).all()
     auth_meter_ids = [m.id for m in auth_meters]
 
     if not auth_meter_ids:
@@ -60,15 +60,21 @@ def get_dashboard_summary(
     else:
         overall_sev = "LOW"
 
-    # Count meters with insufficient history
+    # Count meters with insufficient history via single aggregated query (eliminates N+1 loop)
     insufficient_count = 0
     total_recent = 0.0
     total_baseline = 0.0
     evidence_highlights: List[EvidenceDetail] = []
 
+    reading_counts = (
+        db.query(Reading.meter_id, func.count(Reading.id))
+        .filter(Reading.meter_id.in_(auth_meter_ids))
+        .group_by(Reading.meter_id)
+        .all()
+    )
+    counts_map = {m_id: count for m_id, count in reading_counts}
     for m in auth_meters:
-        reading_count = db.query(Reading).filter(Reading.meter_id == m.id).count()
-        if reading_count < settings.MIN_BASELINE_READINGS:
+        if counts_map.get(m.id, 0) < settings.MIN_BASELINE_READINGS:
             insufficient_count += 1
 
     # Fetch recent alert evidences

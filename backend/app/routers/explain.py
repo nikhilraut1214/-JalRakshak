@@ -8,6 +8,7 @@ from backend.app.schemas import (
 from backend.app.auth import get_current_user
 from backend.app.authorization import verify_alert_access
 from backend.app.explanations import generate_explanation
+from backend.app.rate_limiter import explain_rate_limiter
 
 router = APIRouter(prefix="/api/explain", tags=["explain"])
 
@@ -30,6 +31,9 @@ def explain_alert(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Alert has no attached analytical evidence to explain."
         )
+
+    # Enforce per-user rate limit (10 requests/minute) before calling LLM
+    explain_rate_limiter.check_rate_limit(current_user.id)
 
     ev = alert.evidence
     evidence_detail = EvidenceDetail(

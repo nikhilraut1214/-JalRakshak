@@ -7,7 +7,7 @@ from backend.app.schemas import (
     ApiResponse, MeterCreate, MeterResponse, ReadingResponse
 )
 from backend.app.auth import get_current_user
-from backend.app.authorization import verify_meter_access, can_access_meter
+from backend.app.authorization import verify_meter_access, get_authorized_meters_query
 
 router = APIRouter(prefix="/api/meters", tags=["meters"])
 
@@ -16,9 +16,8 @@ def list_meters(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    all_meters = db.query(Meter).all()
-    # Filter to authorized meters only
-    authorized_meters = [m for m in all_meters if can_access_meter(current_user, m)]
+    # SQL-level RBAC filtering avoids loading all tenants' meters into memory
+    authorized_meters = get_authorized_meters_query(db, current_user).all()
     return ApiResponse(data=authorized_meters)
 
 @router.post("", response_model=ApiResponse[MeterResponse], status_code=status.HTTP_201_CREATED)

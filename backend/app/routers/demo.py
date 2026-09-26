@@ -28,33 +28,18 @@ def run_demo_scenario(
             detail=str(e)
         )
 
-    # Resolve or create demo meter
-    meter_id = payload.meter_id
-    if meter_id:
-        meter = db.query(Meter).filter(Meter.id == meter_id).first()
-        if not meter:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Target meter '{meter_id}' not found."
-            )
-        verify_meter_access(current_user, meter)
-    else:
-        # Create a new demo meter
-        meter = Meter(
-            name=f"Demo Meter ({scen_name})",
-            location_label="Demo Facility",
-            meter_type="water",
-            owner_id=current_user.id,
-            organization_id=current_user.organization_id
-        )
-        db.add(meter)
-        db.commit()
-        db.refresh(meter)
-        meter_id = meter.id
-
-    # Clear existing readings for this meter to ensure clean seeded scenario
-    db.query(Reading).filter(Reading.meter_id == meter_id).delete()
+    # Always create an isolated demo meter for the scenario sandbox
+    meter = Meter(
+        name=f"Demo Meter ({scen_name})",
+        location_label="Scenario Lab Sandbox",
+        meter_type="water",
+        owner_id=current_user.id,
+        organization_id=current_user.organization_id
+    )
+    db.add(meter)
     db.commit()
+    db.refresh(meter)
+    meter_id = meter.id
 
     # Insert seeded readings
     for r in readings_data:

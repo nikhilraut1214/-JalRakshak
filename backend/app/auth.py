@@ -17,6 +17,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(hours=24)
+    to_encode.setdefault("aud", settings.SUPABASE_JWT_AUDIENCE)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
     return encoded_jwt
@@ -24,20 +25,19 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def decode_token(token: str) -> Dict[str, Any]:
     """
     Verifies and decodes the JWT token.
-    Checks signature and expiration.
-    Supports Supabase secret or HS256 verification.
+    Checks signature, expiration, and expected audience.
     """
     try:
-        # First attempt HS256 with SUPABASE_JWT_SECRET
+        # HS256 with SUPABASE_JWT_SECRET and strict audience validation
         payload = jwt.decode(
             token,
             settings.SUPABASE_JWT_SECRET,
             algorithms=["HS256"],
-            options={"verify_aud": False}
+            audience=settings.SUPABASE_JWT_AUDIENCE,
+            options={"verify_aud": True}
         )
         return payload
     except jwt.PyJWTError as e:
-        # Try unverified decode if in test/demo mode and secret is default
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid or expired authentication token: {str(e)}",

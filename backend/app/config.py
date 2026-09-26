@@ -1,4 +1,5 @@
 import os
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -11,6 +12,10 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: str = os.getenv("SUPABASE_ANON_KEY", "")
     SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     SUPABASE_JWT_SECRET: str = os.getenv("SUPABASE_JWT_SECRET", "jalrakshak-dev-secret-key-change-in-prod-32chars")
+    SUPABASE_JWT_AUDIENCE: str = os.getenv("SUPABASE_JWT_AUDIENCE", "authenticated")
+
+    # Network / CORS configuration
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
     
     # Groq API Configuration
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
@@ -27,5 +32,15 @@ class Settings(BaseSettings):
     DEFAULT_ORG_ID: str = "org-default"
 
     model_config = {"env_file": ".env", "extra": "allow"}
+
+    @model_validator(mode="after")
+    def validate_production_security(self) -> "Settings":
+        if self.ENVIRONMENT.lower() == "production":
+            default_dev_secret = "jalrakshak-dev-secret-key-change-in-prod-32chars"
+            if not self.SUPABASE_JWT_SECRET or self.SUPABASE_JWT_SECRET == default_dev_secret:
+                raise ValueError(
+                    "Production configuration error: SUPABASE_JWT_SECRET must be explicitly configured with a non-default secret in production."
+                )
+        return self
 
 settings = Settings()
