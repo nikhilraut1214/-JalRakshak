@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Alert } from '../types';
 import { api } from '../api';
 import { translations, SupportedLanguage } from '../i18n';
@@ -13,30 +13,48 @@ interface AlertsViewProps {
 export const AlertsView: React.FC<AlertsViewProps> = ({ language }) => {
   const t = translations[language];
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
 
-  const fetchAlerts = async () => {
+  const fetchAlerts = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
       const data = await api.getAlerts({
         severity: severityFilter || undefined,
         status: statusFilter || undefined,
       });
       setAlerts(data);
+      setError(null);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [severityFilter, statusFilter]);
 
   useEffect(() => {
-    fetchAlerts();
+    let ignore = false;
+    api.getAlerts({
+      severity: severityFilter || undefined,
+      status: statusFilter || undefined,
+    })
+      .then((data) => {
+        if (!ignore) {
+          setAlerts(data);
+          setError(null);
+        }
+      })
+      .catch((err: any) => {
+        if (!ignore) {
+          setError(err.message);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
   }, [severityFilter, statusFilter]);
 
   return (
@@ -44,13 +62,15 @@ export const AlertsView: React.FC<AlertsViewProps> = ({ language }) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900">{t.alerts}</h2>
-          <p className="text-xs text-slate-500">Anomaly alerts requiring human verification or lifecycle resolution</p>
+          <p className="text-xs text-slate-500">{t.alertsSubtitle}</p>
         </div>
         <button
-          onClick={fetchAlerts}
+          onClick={() => fetchAlerts(true)}
+          disabled={loading}
+          aria-label={t.refresh}
           className="px-3 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition flex items-center gap-1.5 self-start"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           {t.refresh}
         </button>
       </div>
@@ -66,11 +86,12 @@ export const AlertsView: React.FC<AlertsViewProps> = ({ language }) => {
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-4 text-xs">
         <div className="flex items-center gap-2 font-medium text-slate-700">
           <Filter className="w-3.5 h-3.5 text-slate-500" />
-          Filters:
+          {t.filter}:
         </div>
 
         <select
           value={severityFilter}
+          aria-label={t.filterBySeverity}
           onChange={(e) => setSeverityFilter(e.target.value)}
           className="border border-slate-300 rounded-md px-3 py-1.5 bg-white text-slate-800 focus:ring-1 focus:ring-sky-500 outline-none"
         >
@@ -83,6 +104,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({ language }) => {
 
         <select
           value={statusFilter}
+          aria-label={t.filterByStatus}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="border border-slate-300 rounded-md px-3 py-1.5 bg-white text-slate-800 focus:ring-1 focus:ring-sky-500 outline-none"
         >
@@ -103,12 +125,12 @@ export const AlertsView: React.FC<AlertsViewProps> = ({ language }) => {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
               <tr>
-                <th className="py-3 px-4">Severity & Risk</th>
-                <th className="py-3 px-4">Lifecycle Status</th>
-                <th className="py-3 px-4">Meter ID</th>
-                <th className="py-3 px-4">Excess Est.</th>
-                <th className="py-3 px-4">Detected At</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3 px-4">{t.severity} & {t.riskScore}</th>
+                <th className="py-3 px-4">{t.status}</th>
+                <th className="py-3 px-4">{t.meterId}</th>
+                <th className="py-3 px-4">{t.estimatedExcess}</th>
+                <th className="py-3 px-4">{t.detectedAt}</th>
+                <th className="py-3 px-4 text-right">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -125,7 +147,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({ language }) => {
                     </td>
                     <td className="py-3 px-4 font-mono text-[11px] text-slate-600">{a.meter_id.slice(0, 8)}...</td>
                     <td className="py-3 px-4 font-bold text-slate-800">
-                      {a.evidence ? `${a.evidence.estimated_excess_liters} L` : '—'}
+                      {a.evidence ? `${a.evidence.estimated_excess_liters.toLocaleString(language === 'en-IN' ? 'en-IN' : language === 'mr-IN' ? 'mr-IN' : 'hi-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${t.litersUnit}` : '—'}
                     </td>
                     <td className="py-3 px-4 text-slate-500">{new Date(a.created_at).toLocaleString()}</td>
                     <td className="py-3 px-4 text-right">
@@ -134,7 +156,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({ language }) => {
                         className="px-2.5 py-1 text-xs font-medium rounded-md bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition inline-flex items-center gap-1"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        Inspect & Action
+                        {t.viewDetails}
                       </button>
                     </td>
                   </tr>
@@ -142,7 +164,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({ language }) => {
               ) : (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
-                    No alerts match the selected criteria.
+                    {t.noData}
                   </td>
                 </tr>
               )}
@@ -156,9 +178,9 @@ export const AlertsView: React.FC<AlertsViewProps> = ({ language }) => {
           alert={selectedAlert}
           language={language}
           onClose={() => setSelectedAlert(null)}
-          onAlertUpdated={(updated) => {
+          onAlertUpdated={() => {
             setSelectedAlert(null);
-            fetchAlerts();
+            fetchAlerts(true);
           }}
         />
       )}

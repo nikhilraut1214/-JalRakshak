@@ -157,7 +157,16 @@ def test_sec03_production_jwt_secret_validation():
     assert prod_settings.ENVIRONMENT == "production"
     assert prod_settings.SUPABASE_JWT_SECRET == "high-entropy-secure-production-secret-999"
 
-    # 4. Development + default secret -> ALLOWED
+    # 4. Production + wildcard origin -> MUST FAIL
+    with pytest.raises(ValueError) as exc3:
+        Settings(
+            ENVIRONMENT="production",
+            SUPABASE_JWT_SECRET="high-entropy-secure-production-secret-999",
+            ALLOWED_ORIGINS="*"
+        )
+    assert "Wildcard '*' origin is not permitted" in str(exc3.value)
+
+    # 5. Development + default secret -> ALLOWED
     dev_settings = Settings(
         ENVIRONMENT="development",
         SUPABASE_JWT_SECRET="jalrakshak-dev-secret-key-change-in-prod-32chars"

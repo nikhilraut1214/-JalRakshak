@@ -31,6 +31,8 @@ services:
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-jalrakshak-dev-secret-key-change-in-prod-32chars}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     ports:
       - "8000:8000"
     depends_on:

@@ -185,10 +185,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           {/* Manual Credentials Form */}
           <form onSubmit={onSubmit} className="space-y-3.5">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+              <label htmlFor="login-email-input" className="block text-xs font-semibold text-slate-700 mb-1">
+                Email Address
+              </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
+                  id="login-email-input"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -200,10 +203,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+              <label htmlFor="login-password-input" className="block text-xs font-semibold text-slate-700 mb-1">
+                Password
+              </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
+                  id="login-password-input"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

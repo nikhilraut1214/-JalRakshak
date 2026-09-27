@@ -45,6 +45,10 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "Production configuration error: SUPABASE_JWT_SECRET must be explicitly configured with a non-default secret in production."
                 )
+            if "*" in [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]:
+                raise ValueError(
+                    "Production configuration error: Wildcard '*' origin is not permitted in ALLOWED_ORIGINS when credentials/authentication are enabled."
+                )
         return self
 
 settings = Settings()

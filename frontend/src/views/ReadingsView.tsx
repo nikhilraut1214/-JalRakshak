@@ -1,8 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Meter, Reading } from '../types';
 import { api } from '../api';
 import { translations, SupportedLanguage } from '../i18n';
-import { UploadCloud, Plus, RefreshCw, AlertTriangle, FileText, CheckCircle2 } from 'lucide-react';
+import {
+  UploadCloud,
+  Plus,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+  FileText,
+} from 'lucide-react';
 
 interface ReadingsViewProps {
   language: SupportedLanguage;
@@ -24,39 +31,61 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
   // CSV upload state
   const [csvFile, setCsvFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    const loadMeters = async () => {
-      try {
-        const m = await api.getMeters();
-        setMeters(m);
-        if (m.length > 0) {
-          setSelectedMeterId(m[0].id);
-        }
-      } catch (err: any) {
-        setError(err.message);
-      }
-    };
-    loadMeters();
-  }, []);
-
-  useEffect(() => {
-    if (selectedMeterId) {
-      loadReadings(selectedMeterId);
-    }
-  }, [selectedMeterId]);
-
-  const loadReadings = async (mId: string) => {
+  const loadReadings = useCallback(async (mId: string, showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
       const data = await api.getMeterReadings(mId);
       setReadings(data);
+      setError(null);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    api.getMeters()
+      .then((m) => {
+        if (!ignore) {
+          setMeters(m);
+          if (m.length > 0) {
+            setSelectedMeterId(m[0].id);
+          }
+        }
+      })
+      .catch((err: any) => {
+        if (!ignore) {
+          setError(err.message);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedMeterId) return;
+    let ignore = false;
+    api.getMeterReadings(selectedMeterId)
+      .then((data) => {
+        if (!ignore) {
+          setReadings(data);
+          setError(null);
+          setLoading(false);
+        }
+      })
+      .catch((err: any) => {
+        if (!ignore) {
+          setError(err.message);
+          setLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [selectedMeterId]);
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,8 +131,8 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">{t.readings}</h2>
-        <p className="text-xs text-slate-500">Ingest water consumption data via manual submission or CSV batch upload</p>
+        <h2 className="text-xl font-bold text-slate-900">{t.readingsTitle}</h2>
+        <p className="text-xs text-slate-500">{t.readingsSubtitle}</p>
       </div>
 
       {error && (
@@ -126,13 +155,16 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
           <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
             <Plus className="w-4 h-4 text-sky-600" />
-            {t.addReading}
+            {t.manualReadingTitle}
           </div>
 
           <form onSubmit={handleManualSubmit} className="space-y-3 text-xs">
             <div>
-              <label className="block font-medium text-slate-700 mb-1">Target Meter</label>
+              <label htmlFor="manual-meter-select" className="block font-medium text-slate-700 mb-1">
+                {t.selectMeterPrompt}
+              </label>
               <select
+                id="manual-meter-select"
                 value={selectedMeterId}
                 onChange={(e) => setSelectedMeterId(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-sky-500 outline-none bg-white"
@@ -147,8 +179,11 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Timestamp</label>
+                <label htmlFor="manual-timestamp-input" className="block font-medium text-slate-700 mb-1">
+                  {t.readingTimestamp}
+                </label>
                 <input
+                  id="manual-timestamp-input"
                   type="datetime-local"
                   required
                   value={timestamp}
@@ -158,8 +193,11 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Consumption (Liters)</label>
+                <label htmlFor="manual-liters-input" className="block font-medium text-slate-700 mb-1">
+                  {t.readingValueLiters}
+                </label>
                 <input
+                  id="manual-liters-input"
                   type="number"
                   step="0.1"
                   min="0"
@@ -177,7 +215,7 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
               disabled={loading || !selectedMeterId}
               className="w-full py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-md transition"
             >
-              Submit Reading
+              {loading ? t.loading : t.submitReading}
             </button>
           </form>
         </div>
@@ -186,14 +224,14 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-4">
           <div className="flex items-center gap-2 font-bold text-sm text-slate-900">
             <UploadCloud className="w-4 h-4 text-indigo-600" />
-            {t.uploadCsv}
+            {t.uploadCsvTitle}
           </div>
 
           <form onSubmit={handleCsvUpload} className="space-y-3 text-xs">
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-1">
               <div className="font-semibold text-slate-700 flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-slate-500" />
-                Required CSV Format:
+                {t.uploadCsvDesc}
               </div>
               <code className="block text-[11px] font-mono text-slate-600 bg-white p-1.5 rounded border border-slate-200">
                 meter_id,timestamp,reading_liters
@@ -201,7 +239,11 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
             </div>
 
             <div>
+              <label htmlFor="csv-file-upload" className="sr-only">
+                {t.selectCsvFile}
+              </label>
               <input
+                id="csv-file-upload"
                 type="file"
                 accept=".csv"
                 required
@@ -215,7 +257,7 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
               disabled={loading || !csvFile}
               className="w-full py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition"
             >
-              Upload & Process CSV
+              {loading ? t.uploading : t.uploadCsvButton}
             </button>
           </form>
         </div>
@@ -225,14 +267,15 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs space-y-3 p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900">
-            Recorded Time-Series Readings ({readings.length})
+            {t.recentTelemetry} ({readings.length})
           </h3>
           <button
             onClick={() => selectedMeterId && loadReadings(selectedMeterId)}
+            aria-label={t.refresh}
             className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Refresh
+            {t.refresh}
           </button>
         </div>
 
@@ -240,9 +283,9 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
               <tr>
-                <th className="py-2.5 px-4">Timestamp (UTC)</th>
-                <th className="py-2.5 px-4">Reading (Liters)</th>
-                <th className="py-2.5 px-4">Data Nature</th>
+                <th className="py-2.5 px-4">{t.readingTimestamp}</th>
+                <th className="py-2.5 px-4">{t.readingValueLiters}</th>
+                <th className="py-2.5 px-4">Type</th>
                 <th className="py-2.5 px-4">Record ID</th>
               </tr>
             </thead>
@@ -251,7 +294,9 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
                 readings.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50">
                     <td className="py-2.5 px-4 font-mono text-slate-700">{new Date(r.timestamp).toLocaleString()}</td>
-                    <td className="py-2.5 px-4 font-bold text-slate-900">{r.reading_liters} L</td>
+                    <td className="py-2.5 px-4 font-bold text-slate-900">
+                      {r.reading_liters.toLocaleString(language === 'en-IN' ? 'en-IN' : language === 'mr-IN' ? 'mr-IN' : 'hi-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} {t.litersUnit}
+                    </td>
                     <td className="py-2.5 px-4 text-slate-500 capitalize">{r.raw_or_derived}</td>
                     <td className="py-2.5 px-4 font-mono text-[11px] text-slate-400">{r.id.slice(0, 8)}</td>
                   </tr>
@@ -259,7 +304,7 @@ export const ReadingsView: React.FC<ReadingsViewProps> = ({ language }) => {
               ) : (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-slate-400 italic">
-                    No readings recorded for this meter yet.
+                    {t.noReadingsFound}
                   </td>
                 </tr>
               )}

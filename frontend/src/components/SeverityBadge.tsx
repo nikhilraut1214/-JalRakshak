@@ -24,8 +24,14 @@ export const SeverityBadge: React.FC<SeverityBadgeProps> = ({
     lg: 'text-base px-3.5 py-1.5 font-semibold',
   }[size];
 
+  const ariaText = riskScore !== undefined
+    ? `Severity ${severity}, Risk Score ${Math.round(riskScore)} out of 100`
+    : `Severity ${severity}`;
+
   return (
     <span
+      role="status"
+      aria-label={ariaText}
       className={`inline-flex items-center gap-1.5 rounded-md border font-medium tracking-tight ${styles} ${sizeClasses}`}
     >
       {riskScore !== undefined ? (

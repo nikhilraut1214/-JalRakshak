@@ -109,7 +109,7 @@ Respond in pure JSON matching this schema:
             "response_format": {"type": "json_object"}
         }
 
-        with httpx.Client(timeout=8.0) as client:
+        with httpx.Client(timeout=5.0) as client:
             resp = client.post(url, headers=headers, json=body)
             if resp.status_code == 200:
                 data = resp.json()

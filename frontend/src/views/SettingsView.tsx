@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { translations, SupportedLanguage } from '../i18n';
-import { Settings as SettingsIcon, Shield, Server, Bot, Check, Key } from 'lucide-react';
+import { Shield, Server, Bot, Check, Key } from 'lucide-react';
 import { setAuthToken, getAuthToken } from '../api';
 
 interface SettingsViewProps {
@@ -22,7 +22,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ language }) => {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div>
         <h2 className="text-xl font-bold text-slate-900">{t.settings}</h2>
-        <p className="text-xs text-slate-500">System configurations, security credentials, and AI parameters</p>
+        <p className="text-xs text-slate-500">{t.systemConfigSubtitle}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -39,11 +39,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ language }) => {
             </p>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+              <label htmlFor="jwt-token-input" className="block font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
                 <Key className="w-3.5 h-3.5 text-slate-400" />
                 Custom Bearer JWT Token (Test / Override)
               </label>
               <textarea
+                id="jwt-token-input"
                 rows={3}
                 value={tokenInput}
                 onChange={(e) => setTokenInput(e.target.value)}
@@ -57,11 +58,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ language }) => {
                 onClick={handleSaveToken}
                 className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-md font-semibold text-xs transition"
               >
-                Apply Token
+                {t.applyToken}
               </button>
               {savedTokenMsg && (
                 <span className="text-emerald-600 font-medium flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" /> Token applied
+                  <Check className="w-3.5 h-3.5" /> {t.tokenApplied}
                 </span>
               )}
             </div>
@@ -80,7 +81,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ language }) => {
               Groq LLM is utilized exclusively as an <strong>explanation and translation layer</strong>. The system automatically engages deterministic offline templates whenever Groq is unconfigured or unreachable.
             </p>
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-1">
-              <div className="font-semibold text-slate-700">Enforced AI Guardrails:</div>
+              <div className="font-semibold text-slate-700">{t.aiGuardrailsTitle}</div>
               <ul className="list-disc list-inside space-y-1 text-slate-600 text-[11px]">
                 <li>Zero authority over risk score or severity</li>
                 <li>No physical leak confirmation claims</li>

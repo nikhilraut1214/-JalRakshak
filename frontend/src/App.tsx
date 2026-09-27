@@ -24,6 +24,7 @@ export function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [activeModule, setActiveModule] = useState<string>('dashboard');
   const [language, setLanguage] = useState<SupportedLanguage>('en-IN');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   useEffect(() => {
     onUnauthorized(() => {
@@ -117,8 +118,13 @@ export function App() {
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar
         activeModule={activeModule}
-        onSelectModule={setActiveModule}
+        onSelectModule={(mod) => {
+          setActiveModule(mod);
+          setIsMobileNavOpen(false);
+        }}
         language={language}
+        isMobileNavOpen={isMobileNavOpen}
+        onCloseMobileNav={() => setIsMobileNavOpen(false)}
       />
       <div className="flex-1 flex flex-col min-w-0">
         <Header
@@ -126,6 +132,8 @@ export function App() {
           onLanguageChange={setLanguage}
           currentUser={currentUser}
           onLogout={handleLogout}
+          isMobileNavOpen={isMobileNavOpen}
+          onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)}
         />
         <main className="flex-1 overflow-y-auto">
           {renderActiveView()}

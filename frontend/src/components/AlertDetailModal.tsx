@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Alert, ExplainResponse } from '../types';
 import { SeverityBadge } from './SeverityBadge';
 import { EvidenceCard } from './EvidenceCard';
 import { api } from '../api';
 import { translations, SupportedLanguage } from '../i18n';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { X, CheckCircle, ShieldAlert, Bot, FileText, ChevronRight, AlertCircle, Wrench } from 'lucide-react';
 
 interface AlertDetailModalProps {
@@ -24,6 +25,13 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [explanation, setExplanation] = useState<ExplainResponse | null>(null);
   const [note, setNote] = useState('');
+
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const modalRef = useFocusTrap<HTMLDivElement>({
+    isOpen: true,
+    onClose,
+    initialFocusRef: closeButtonRef,
+  });
 
   const ev = alert.evidence;
 
@@ -68,20 +76,32 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="alert-modal-title"
+        className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-3">
             <ShieldAlert className="w-6 h-6 text-sky-700" />
             <div>
-              <div className="text-sm font-semibold text-slate-900">Incident Details #{alert.id.slice(0, 8)}</div>
-              <div className="text-xs text-slate-500">Meter ID: {alert.meter_id} · Status: <strong className="text-slate-800">{alert.status}</strong></div>
+              <div id="alert-modal-title" className="text-sm font-semibold text-slate-900">
+                {t.incidentDetails} #{alert.id.slice(0, 8)}
+              </div>
+              <div className="text-xs text-slate-500">
+                {t.meterIdLabel}: {alert.meter_id} · {t.statusLabel}: <strong className="text-slate-800">{alert.status}</strong>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <SeverityBadge severity={alert.severity} riskScore={alert.risk_score} />
             <button
+              ref={closeButtonRef}
               onClick={onClose}
+              aria-label={t.closeModal}
               className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
             >
               <X className="w-5 h-5" />
@@ -101,12 +121,12 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
           {ev ? (
             <EvidenceCard
               evidence={ev}
-              title="Deterministic Canonical Evidence Breakdown"
+              language={language}
               showBreakdown={true}
             />
           ) : (
             <div className="text-sm text-slate-500 italic p-4 bg-slate-50 rounded-lg border border-slate-200">
-              No structured evidence recorded for this incident.
+              {t.noEvidenceRecorded}
             </div>
           )}
 
@@ -133,7 +153,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
                     <FileText className="w-4 h-4 text-sky-700" />
                     {explanation.source === 'groq' ? t.sourceGroq : t.sourceDeterministic}
                   </span>
-                  <span className="text-xs text-sky-600 font-mono">Language: {explanation.language}</span>
+                  <span className="text-xs text-sky-600 font-mono">{t.languageLabel} {explanation.language}</span>
                 </div>
                 <div className="text-sm text-slate-800 whitespace-pre-line leading-relaxed">
                   {explanation.explanation}
@@ -141,7 +161,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
               </div>
             ) : (
               <div className="p-4 rounded-lg border border-dashed border-slate-200 text-center text-xs text-slate-400">
-                Click &quot;{t.generateExplanation}&quot; to produce an evidence-grounded explanation in {language}.
+                {t.clickToGenerateExplanation}
               </div>
             )}
           </div>
@@ -150,26 +170,27 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
           <div className="bg-amber-50/60 border border-amber-200 rounded-lg p-4 space-y-2">
             <h4 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
               <Wrench className="w-4 h-4 text-amber-700" />
-              On-Site Physical Verification Guidance
+              {t.physicalVerificationGuidanceTitle}
             </h4>
             <ul className="text-xs text-amber-900/90 space-y-1.5 list-disc list-inside">
-              <li>Check all internal faucets, flush tanks, and garden hose bibs for continuous trickling.</li>
-              <li>Perform a Zero-Consumption Check: ensure all taps are off and observe if the water meter spindle is moving.</li>
-              <li>Inspect exposed supply lines and connection unions for moisture or damp spots.</li>
-              <li>Confirm abnormal usage or report as a false alarm using the authorized workflow below.</li>
+              <li>{t.verificationStep1}</li>
+              <li>{t.verificationStep2}</li>
+              <li>{t.verificationStep3}</li>
+              <li>{t.verificationStep4}</li>
             </ul>
           </div>
 
           {/* Section 4: Lifecycle Actions (Strict Transition Matrix) */}
           <div className="space-y-3 pt-2 border-t border-slate-100">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Authorized Lifecycle Actions</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">{t.authorizedLifecycleActions}</h4>
             
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Optional workflow audit note..."
+                placeholder={t.auditNotePlaceholder}
+                aria-label={t.auditNotePlaceholder}
                 className="text-xs px-3 py-2 border border-slate-300 rounded-md flex-1 focus:ring-1 focus:ring-sky-500 outline-none"
               />
             </div>
@@ -236,7 +257,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
 
               {alert.status === 'RESOLVED' && (
                 <span className="text-xs font-medium text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-200">
-                  Incident is Resolved and Closed.
+                  {t.incidentResolvedMessage}
                 </span>
               )}
             </div>

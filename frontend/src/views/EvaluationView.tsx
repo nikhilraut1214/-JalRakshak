@@ -66,12 +66,12 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({ language }) => {
 
       {/* Honest Metric Reporting Guard */}
       <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-700 space-y-1">
-        <div className="font-bold flex items-center gap-1.5 text-slate-900">
+        <div className="font-bold flex items-center gap-1.5 text-slate-800">
           <ShieldCheck className="w-4 h-4 text-sky-700" />
-          Scientific Ground-Truth Reporting Standards
+          {t.scientificReportingTitle}
         </div>
         <p>
-          Metrics are reported only when verified against seeded scenarios or empirical runtime measurements. Features lacking longitudinal production telemetry are explicitly reported as <strong>Not yet measured</strong>.
+          {t.scientificReportingDesc}
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({ language }) => {
         {/* Card 1: Classification Performance */}
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Benchmark F1 Score</span>
+            <span className="text-xs font-semibold text-slate-500">Benchmark {t.metricF1}</span>
             <BarChart2 className="w-4 h-4 text-sky-600" />
           </div>
           <div className="text-2xl font-bold text-slate-900">
@@ -90,12 +90,12 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({ language }) => {
           </div>
           <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-100">
             <span>
-              Precision: {evalResults?.classification?.precision !== undefined && evalResults.classification.precision !== null
+              {t.metricPrecision}: {evalResults?.classification?.precision !== undefined && evalResults.classification.precision !== null
                 ? evalResults.classification.precision.toFixed(2)
                 : '—'}
             </span>
             <span>
-              Recall: {evalResults?.classification?.recall !== undefined && evalResults.classification.recall !== null
+              {t.metricRecall}: {evalResults?.classification?.recall !== undefined && evalResults.classification.recall !== null
                 ? evalResults.classification.recall.toFixed(2)
                 : '—'}
             </span>
@@ -105,7 +105,7 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({ language }) => {
         {/* Card 2: Ground-Truth Alignment & Confusion Matrix */}
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Confusion Matrix & Alert Rate</span>
+            <span className="text-xs font-semibold text-slate-500">{t.confusionMatrixTitle}</span>
             <Check className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="flex items-center gap-2">
@@ -123,7 +123,7 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({ language }) => {
             </span>
           </div>
           <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-            False Alert Rate:{' '}
+            {t.metricFAR}:{' '}
             <span className="font-semibold text-slate-700">
               {evalResults?.classification?.false_alert_rate !== undefined && evalResults.classification.false_alert_rate !== null
                 ? `${(evalResults.classification.false_alert_rate * 100).toFixed(1)}%`
@@ -135,7 +135,7 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({ language }) => {
         {/* Card 3: Measured Latency */}
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Operational Latency</span>
+            <span className="text-xs font-semibold text-slate-500">{t.operationalLatency}</span>
             <Clock className="w-4 h-4 text-indigo-600" />
           </div>
           <div className="text-2xl font-bold text-slate-900">
@@ -219,7 +219,7 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({ language }) => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h3 className="text-sm font-bold text-slate-900">
-                Seeded Scenario Ground-Truth Benchmark Results
+                {t.groundTruthValidationMatrix}
               </h3>
               <p className="text-xs text-slate-500">
                 Evaluated {evalResults.scenarios_tested} scenarios with deterministic seed against ground-truth intent
@@ -233,16 +233,16 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({ language }) => {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
                 <tr>
-                  <th className="py-2.5 px-3">Scenario</th>
-                  <th className="py-2.5 px-3">Ground Truth</th>
+                  <th className="py-2.5 px-3">{t.scenarioCol}</th>
+                  <th className="py-2.5 px-3">{t.expectedGroundTruthCol}</th>
                   <th className="py-2.5 px-3">Alert (Exp / Act)</th>
                   <th className="py-2.5 px-3">Class</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3">Severity</th>
-                  <th className="py-2.5 px-3">Risk</th>
-                  <th className="py-2.5 px-3">Excess (L)</th>
-                  <th className="py-2.5 px-3">Latency</th>
-                  <th className="py-2.5 px-3">Result</th>
+                  <th className="py-2.5 px-3">{t.status}</th>
+                  <th className="py-2.5 px-3">{t.severity}</th>
+                  <th className="py-2.5 px-3">{t.riskScore}</th>
+                  <th className="py-2.5 px-3">{t.lossColumn}</th>
+                  <th className="py-2.5 px-3">{t.metricLatency}</th>
+                  <th className="py-2.5 px-3">{t.resultCol}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

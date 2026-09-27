@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { DashboardSummary, Alert } from '../types';
 import { api } from '../api';
 import { translations, SupportedLanguage } from '../i18n';
@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   Droplet,
   Gauge,
-  TrendingUp,
   ShieldAlert,
   ArrowRight,
   Info,
@@ -32,21 +31,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
 
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
       const data = await api.getDashboardSummary();
       setSummary(data);
+      setError(null);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchSummary();
+    let ignore = false;
+    api.getDashboardSummary()
+      .then((data) => {
+        if (!ignore) {
+          setSummary(data);
+          setError(null);
+          setLoading(false);
+        }
+      })
+      .catch((err: any) => {
+        if (!ignore) {
+          setError(err.message);
+          setLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   if (loading && !summary) {
@@ -54,7 +70,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="p-8 flex items-center justify-center min-h-[400px]">
         <div className="flex items-center gap-3 text-slate-500 text-sm">
           <RefreshCw className="w-5 h-5 animate-spin text-sky-600" />
-          Loading authoritative analytics...
+          {t.loadingAnalytics}
         </div>
       </div>
     );
@@ -74,7 +90,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={fetchSummary}
+            onClick={() => fetchSummary(true)}
+            aria-label={t.refresh}
             className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition flex items-center gap-1.5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -84,7 +101,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => onNavigate('scenario_lab')}
             className="px-3 py-1.5 text-xs font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-md transition flex items-center gap-1.5"
           >
-            Run Seeded Scenario
+            {t.scenarioLab}
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -108,7 +125,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="text-2xl font-bold text-slate-900">
             {summary?.total_meters ?? 0}
           </div>
-          <div className="text-[11px] text-slate-400">Authorized for active role</div>
+          <div className="text-[11px] text-slate-400">Authorized meters</div>
         </div>
 
         {/* Active Alerts */}
@@ -121,7 +138,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {summary?.active_alerts_count ?? 0}
           </div>
           <div className="text-[11px] text-amber-700 font-medium">
-            {summary?.critical_alerts_count ?? 0} Critical · {summary?.high_alerts_count ?? 0} High
+            {summary?.critical_alerts_count ?? 0} {t.severityCritical} · {summary?.high_alerts_count ?? 0} {t.severityHigh}
           </div>
         </div>
 
@@ -132,7 +149,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <Droplet className="w-4 h-4 text-sky-500" />
           </div>
           <div className="text-2xl font-bold text-slate-900">
-            {summary?.recent_consumption_liters?.toLocaleString() ?? 0} <span className="text-xs font-normal text-slate-500">Liters</span>
+            {summary?.recent_consumption_liters?.toLocaleString() ?? 0} <span className="text-xs font-normal text-slate-500">L</span>
           </div>
           <div className="text-[11px] text-slate-400">
             Baseline: {summary?.expected_baseline_liters?.toLocaleString() ?? 0} L
@@ -152,11 +169,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               size="md"
             />
           </div>
-          <div className="text-[11px] text-slate-400">Analytical score (not probability)</div>
+          <div className="text-[11px] text-slate-400">Analytical score (0–100)</div>
         </div>
       </div>
 
-      {/* Insufficient History Warning (Design System Section 8) */}
+      {/* Insufficient History Warning */}
       {summary && summary.insufficient_history_meters_count > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 space-y-2">
           <div className="flex items-center gap-2 text-amber-900 font-semibold text-sm">
@@ -171,7 +188,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               onClick={() => onNavigate('readings')}
               className="text-xs font-medium text-amber-900 underline hover:text-amber-950"
             >
-              Go to Readings / Import to add readings →
+              {t.readings} →
             </button>
           </div>
         </div>
@@ -187,20 +204,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => onNavigate('evidence')}
             className="text-xs text-sky-700 hover:text-sky-800 font-medium"
           >
-            View all evidence streams →
+            {t.viewDetails} →
           </button>
         </div>
 
         {summary && summary.evidence_highlights.length > 0 ? (
           <div className="grid grid-cols-1 gap-4">
             {summary.evidence_highlights.map((ev, idx) => (
-              <EvidenceCard key={idx} evidence={ev} title={`Incident Evidence Stream #${idx + 1}`} />
+              <EvidenceCard
+                key={idx}
+                evidence={ev}
+                language={language}
+                title={`${t.incidentEvidence} #${idx + 1}`}
+              />
             ))}
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500 text-sm">
             <Activity className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            No elevated anomaly streams detected. All meters are within expected baseline intervals.
+            {t.noActiveAlertsDesc}
           </div>
         )}
       </div>
@@ -212,7 +234,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           onClose={() => setSelectedAlert(null)}
           onAlertUpdated={() => {
             setSelectedAlert(null);
-            fetchSummary();
+            fetchSummary(true);
           }}
         />
       )}

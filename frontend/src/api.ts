@@ -6,6 +6,15 @@ import {
 
 const TOKEN_STORAGE_KEY = 'jalrakshak_auth_token';
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+
+function getUrl(endpoint: string): string {
+  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    return endpoint;
+  }
+  return `${API_BASE_URL}${endpoint}`;
+}
+
 let currentAuthToken: string = typeof window !== 'undefined' ? (sessionStorage.getItem(TOKEN_STORAGE_KEY) || '') : '';
 let unauthorizedHandler: (() => void) | null = null;
 
@@ -46,12 +55,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(endpoint, {
+  const response = await fetch(getUrl(endpoint), {
     ...options,
     headers,
   });
 
-  if (response.status === 401 && endpoint !== '/api/auth/login') {
+  if (response.status === 401 && !endpoint.endsWith('/api/auth/login')) {
     clearAuthToken();
     if (unauthorizedHandler) {
       unauthorizedHandler();
@@ -94,7 +103,7 @@ export const api = {
     if (currentAuthToken) {
       headers.set('Authorization', `Bearer ${currentAuthToken}`);
     }
-    const response = await fetch('/api/readings/upload', {
+    const response = await fetch(getUrl('/api/readings/upload'), {
       method: 'POST',
       headers,
       body: formData,

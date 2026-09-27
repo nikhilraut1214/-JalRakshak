@@ -19,12 +19,12 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchImpact = useCallback(async () => {
+  const fetchImpact = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
       const res = await api.getWaterImpact(avoidedFraction, selectedMeterId);
       setData(res);
+      setError(null);
     } catch (err: any) {
       setError(err?.message || 'Failed to load water impact data');
     } finally {
@@ -33,8 +33,25 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
   }, [avoidedFraction, selectedMeterId]);
 
   useEffect(() => {
-    fetchImpact();
-  }, [fetchImpact]);
+    let ignore = false;
+    api.getWaterImpact(avoidedFraction, selectedMeterId)
+      .then((res) => {
+        if (!ignore) {
+          setData(res);
+          setError(null);
+          setLoading(false);
+        }
+      })
+      .catch((err: any) => {
+        if (!ignore) {
+          setError(err?.message || 'Failed to load water impact data');
+          setLoading(false);
+        }
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [avoidedFraction, selectedMeterId]);
 
   const potentialSavings = data?.potential_savings_liters ?? 0;
   const totalExcess = data?.total_estimated_excess_liters ?? 0;
@@ -51,12 +68,13 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
             {t.waterImpact}
           </h2>
           <p className="text-xs text-slate-500">
-            Authoritative deterministic excess metrics & analytical potential savings projections
+            {t.waterImpactSubtitle}
           </p>
         </div>
         <button
-          onClick={fetchImpact}
+          onClick={() => fetchImpact(true)}
           disabled={loading}
+          aria-label={t.refresh}
           className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-600' : 'text-slate-500'}`} />
@@ -64,7 +82,7 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
         </button>
       </div>
 
-      {/* Trust Notice (Design System Section 17 & Phase 4) */}
+      {/* Trust Notice */}
       <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 text-xs text-sky-900 space-y-1">
         <div className="font-bold flex items-center gap-1.5 text-sky-900">
           <Info className="w-4 h-4 text-sky-700" />
@@ -89,22 +107,24 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
           <div className="font-bold text-sm text-slate-900 flex items-center gap-2">
             <Calculator className="w-4 h-4 text-sky-600" />
-            Impact Assumption Parameters
+            {t.impactAssumptionTitle}
           </div>
 
           <div className="space-y-4 text-xs">
             <div>
               <div className="flex justify-between font-medium text-slate-700 mb-1">
-                <span>Avoided Fraction Assumption:</span>
+                <label htmlFor="avoided-fraction-slider">{t.avoidedFractionLabel}</label>
                 <span className="font-bold text-sky-700">{Math.round(avoidedFraction * 100)}%</span>
               </div>
               <input
+                id="avoided-fraction-slider"
                 type="range"
                 min="0.10"
                 max="0.95"
                 step="0.05"
                 value={avoidedFraction}
                 onChange={(e) => setAvoidedFraction(parseFloat(e.target.value))}
+                aria-label={t.avoidedFractionLabel}
                 className="w-full accent-sky-600 cursor-pointer"
               />
               <div className="text-[11px] text-slate-500 mt-1">
@@ -116,10 +136,11 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
             </div>
 
             <div>
-              <label className="block font-medium text-slate-700 mb-1">
-                Scope Filter:
+              <label htmlFor="scope-meter-filter" className="block font-medium text-slate-700 mb-1">
+                {t.scopeFilterLabel}
               </label>
               <select
+                id="scope-meter-filter"
                 value={selectedMeterId !== undefined ? selectedMeterId : ''}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -127,7 +148,7 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
                 }}
                 className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-sky-500 bg-white text-slate-800 outline-none"
               >
-                <option value="">All Authorized Active Anomalies (Aggregate)</option>
+                <option value="">{t.scopeAllOption}</option>
                 {data?.items.map((item) => (
                   <option key={item.meter_id} value={item.meter_id}>
                     {item.meter_code} ({item.meter_type}) - {item.location_label || 'Location N/A'} [{item.severity}]
@@ -135,7 +156,7 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
                 ))}
               </select>
               <div className="text-[11px] text-slate-500 mt-1">
-                Filter potential savings calculation to a specific active meter or view aggregate authorized meters.
+                {t.scopeFilterHelp}
               </div>
             </div>
           </div>
@@ -146,18 +167,18 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-sky-800">
-                Projected Avoided Water Loss
+                {t.projectedAvoidedWaterLoss}
               </span>
               <span className="text-[10px] font-medium bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full">
                 {Math.round(avoidedFraction * 100)}% Avoidable Factor
               </span>
             </div>
             <div className="text-3xl font-extrabold text-sky-900">
-              ~{potentialSavings.toLocaleString()} <span className="text-sm font-normal text-slate-600">Liters</span>
+              ~{potentialSavings.toLocaleString(language === 'en-IN' ? 'en-IN' : language === 'mr-IN' ? 'mr-IN' : 'hi-IN')} <span className="text-sm font-normal text-slate-600">{t.litersUnit}</span>
             </div>
             <div className="text-xs text-slate-500 pt-1 space-y-0.5">
               <div>
-                Authoritative Excess Baseline: <strong className="text-slate-800">{totalExcess.toLocaleString()} L</strong> across {activeCount} domestic/commercial {activeCount === 1 ? 'anomaly' : 'anomalies'}.
+                Authoritative Excess Baseline: <strong className="text-slate-800">{totalExcess.toLocaleString(language === 'en-IN' ? 'en-IN' : language === 'mr-IN' ? 'mr-IN' : 'hi-IN')} {t.litersUnit}</strong> across {activeCount} domestic/commercial {activeCount === 1 ? 'anomaly' : 'anomalies'}.
               </div>
               <div className="font-mono text-[11px] text-slate-600">
                 potential_savings = max(estimated_excess, 0) × avoided_fraction
@@ -168,10 +189,10 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
           <div className="bg-white p-3 rounded-lg border border-sky-100 text-xs text-slate-600 space-y-1 shadow-2xs">
             <div className="font-semibold text-slate-800 flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5 text-sky-600" />
-              Equivalency Perspective:
+              {t.equivalencyPerspective}
             </div>
-            <div>• ~{Math.round(potentialSavings / 20).toLocaleString()} standard 20L water cans saved.</div>
-            <div>• ~{Math.round(potentialSavings / 150).toLocaleString()} daily drinking/sanitation allowances (at 150L/day/person).</div>
+            <div>• ~{Math.round(potentialSavings / 20).toLocaleString(language === 'en-IN' ? 'en-IN' : language === 'mr-IN' ? 'mr-IN' : 'hi-IN')} {t.standard20LCans}</div>
+            <div>• ~{Math.round(potentialSavings / 150).toLocaleString(language === 'en-IN' ? 'en-IN' : language === 'mr-IN' ? 'mr-IN' : 'hi-IN')} {t.dailyAllowances}</div>
           </div>
         </div>
       </div>
@@ -195,7 +216,7 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
         <div className="p-4 border-b border-slate-200 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900">
-              Active Meter Breakdown ({data?.items.length ?? 0})
+              {t.impactTableTitle} ({data?.items.length ?? 0})
             </h3>
             <p className="text-xs text-slate-500">
               Deterministic excess values and projected savings per active meter
@@ -223,14 +244,14 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 font-medium">
                 <tr>
-                  <th className="py-2.5 px-4">Meter</th>
-                  <th className="py-2.5 px-4">Type / Location</th>
-                  <th className="py-2.5 px-4">Severity</th>
+                  <th className="py-2.5 px-4">{t.meterColumn}</th>
+                  <th className="py-2.5 px-4">{t.zoneColumn}</th>
+                  <th className="py-2.5 px-4">{t.severity}</th>
                   <th className="py-2.5 px-4 text-right">Usage (L)</th>
                   <th className="py-2.5 px-4 text-right">Baseline (L)</th>
                   <th className="py-2.5 px-4 text-right">Excess (L)</th>
                   <th className="py-2.5 px-4 text-right">Projected Savings (L)</th>
-                  <th className="py-2.5 px-4 text-center">Status</th>
+                  <th className="py-2.5 px-4 text-center">{t.status}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -293,7 +314,7 @@ export const WaterImpactView: React.FC<WaterImpactViewProps> = ({ language }) =>
                       ) : item.verification_required ? (
                         <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 font-medium">
                           <ShieldAlert className="w-3.5 h-3.5" />
-                          Verification Required
+                          {t.physicalVerificationRequired}
                         </span>
                       ) : (
                         <span className="text-[11px] text-slate-400">
