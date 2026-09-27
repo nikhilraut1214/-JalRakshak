@@ -13,7 +13,7 @@ Hardware-independent water-consumption early-warning and decision-support platfo
 * **Database:** PostgreSQL (production / Docker) or SQLite (local development default)
 * **AI Explanation:** Groq LLM (bounded natural-language explanation with deterministic multilingual offline fallbacks)
 * **Authentication & Authorization:** Supabase Auth (JWT cryptographic signature verification) with strict RBAC (Resident, Operator, Admin) and meter ownership scoping
-* **Telemetry Ingestion:** REST JSON API & chunked CSV upload with schema validation, rate-limiting, and atomicity
+* **Telemetry Ingestion:** REST JSON API & chunked CSV upload (10 MB max file size, 10,000 max rows per batch) with schema validation, rate-limiting, and atomicity
 * **Localization:** Trilingual support for English (`en-IN`), Marathi (`mr-IN`), and Hindi (`hi-IN`)
 
 ### MVP Boundary & Safety Disclaimers
@@ -171,6 +171,18 @@ npm run lint
 # 4. Frontend Type Check & Production Build
 npm run build
 ```
+
+---
+
+### 6.1 Performance Benchmark & Verification Boundaries
+
+* **In-Process Application Latency:** Evaluated via `tests/benchmark_dashboard.py` (FastAPI TestClient in-process ASGI dispatch, 100 iterations, 494 meters, 3,403 readings, 199 alerts, 270 users):
+  * `GET /api/dashboard/summary`: p95 = 19.38 ms (well within <= 800 ms target)
+  * `GET /api/meters`: p95 = 12.64 ms
+  * `GET /api/alerts`: p95 = 139.13 ms
+* **Verification Boundaries:**
+  * Application-level correctness, analytical formulas, offline AI fallback, accessibility focus management, and configuration packaging are **VERIFIED**.
+  * Real-world network/internet HTTP latency, live Docker daemon execution, managed PostgreSQL cloud instance, live Supabase cloud connectivity, and live Groq API key execution are deployment targets and remain **PENDING LIVE DEPLOYMENT EXECUTION**.
 
 ---
 
