@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, String, Float, DateTime, ForeignKey, Text, JSON, Integer, Boolean, Index
+    Column, String, Float, DateTime, ForeignKey, Text, JSON, Integer, Boolean, Index, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from backend.app.database import Base
@@ -52,6 +52,7 @@ class Reading(Base):
 
     __table_args__ = (
         Index("idx_meter_timestamp", "meter_id", "timestamp"),
+        UniqueConstraint("meter_id", "timestamp", name="uq_readings_meter_timestamp"),
     )
 
 class Alert(Base):

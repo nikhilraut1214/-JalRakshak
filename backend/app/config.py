@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     # Default organization for dev
     DEFAULT_ORG_ID: str = "org-default"
 
+    # Telemetry Ingestion configuration
+    CSV_MAX_FILE_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB limit
+    CSV_MAX_ROWS: int = int(os.getenv("CSV_MAX_ROWS", "10000"))
+
     model_config = {"env_file": ".env", "extra": "allow"}
 
     @model_validator(mode="after")

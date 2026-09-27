@@ -1,10 +1,10 @@
 import React from 'react';
-import { EvidenceDetail } from '../types';
+import { EvidenceDetail, AlertEvidence } from '../types';
 import { SeverityBadge } from './SeverityBadge';
 import { AlertTriangle, TrendingUp, TrendingDown, Minus, CheckCircle, HelpCircle } from 'lucide-react';
 
 interface EvidenceCardProps {
-  evidence: EvidenceDetail;
+  evidence: EvidenceDetail | AlertEvidence;
   title?: string;
   showBreakdown?: boolean;
 }
@@ -27,48 +27,48 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({
           <AlertTriangle className="w-5 h-5 text-sky-600" />
           {title}
         </h3>
-        <SeverityBadge severity={evidence.severity} riskScore={evidence.risk_score} />
+        <SeverityBadge severity={evidence.severity as any} riskScore={evidence.risk_score} />
       </div>
 
       {/* Ordered Evidence Display */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
         <div className="bg-slate-50 p-3 rounded border border-slate-100">
-          <div className="text-xs text-slate-500">1. Current Reading</div>
+          <div className="text-xs text-slate-500">1. Current Usage (Observed)</div>
           <div className="text-lg font-bold text-slate-900 mt-1">
             {evidence.current_usage_liters.toLocaleString()} <span className="text-xs font-normal text-slate-500">Liters</span>
           </div>
         </div>
 
         <div className="bg-slate-50 p-3 rounded border border-slate-100">
-          <div className="text-xs text-slate-500">2. Expected / Baseline</div>
+          <div className="text-xs text-slate-500">2. Expected Baseline</div>
           <div className="text-lg font-bold text-slate-900 mt-1">
             {evidence.baseline_liters.toLocaleString()} <span className="text-xs font-normal text-slate-500">Liters (Median)</span>
           </div>
         </div>
 
         <div className="bg-slate-50 p-3 rounded border border-slate-100">
-          <div className="text-xs text-slate-500">3. Deviation</div>
+          <div className="text-xs text-slate-500">3. Deviation Percentage</div>
           <div className={`text-lg font-bold mt-1 ${evidence.deviation_pct > 20 ? 'text-rose-600' : 'text-slate-800'}`}>
             {evidence.deviation_pct >= 0 ? `+${evidence.deviation_pct}%` : `${evidence.deviation_pct}%`}
           </div>
         </div>
 
         <div className="bg-slate-50 p-3 rounded border border-slate-100">
-          <div className="text-xs text-slate-500">4. Persistence</div>
+          <div className="text-xs text-slate-500">4. Persistence Intervals</div>
           <div className="text-lg font-bold text-slate-900 mt-1">
             {evidence.persistence_intervals} <span className="text-xs font-normal text-slate-500">consecutive intervals</span>
           </div>
         </div>
 
         <div className="bg-slate-50 p-3 rounded border border-slate-100">
-          <div className="text-xs text-slate-500">5. Trend</div>
+          <div className="text-xs text-slate-500">5. Trend Direction</div>
           <div className="text-lg font-bold text-slate-900 mt-1 flex items-center gap-1.5 capitalize">
             {getTrendIcon(evidence.trend)} {evidence.trend}
           </div>
         </div>
 
         <div className="bg-slate-50 p-3 rounded border border-slate-100">
-          <div className="text-xs text-slate-500">6. Estimated Excess</div>
+          <div className="text-xs text-slate-500">6. Estimated Excess Liters</div>
           <div className="text-lg font-bold text-amber-700 mt-1">
             {evidence.estimated_excess_liters.toLocaleString()} <span className="text-xs font-normal text-slate-500">Liters (Analytical)</span>
           </div>
@@ -91,28 +91,28 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({
         </div>
 
         <div className="text-slate-400 italic">
-          * Analytical score derived from 45/25/20/10 weighting. Not a leak probability.
+          * Analytical risk score indicates suspected anomaly / possible leak. Physical verification required.
         </div>
       </div>
 
       {showBreakdown && evidence.deviation_score !== undefined && (
         <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
-          <div className="font-semibold text-slate-700 mb-2">Authoritative Risk Weighting Breakdown (0–100):</div>
+          <div className="font-semibold text-slate-700 mb-2">Deterministic Risk Component Breakdown (0–100):</div>
           <div className="grid grid-cols-4 gap-2 text-center">
             <div className="bg-white p-1.5 rounded border border-slate-200">
-              <div className="text-slate-400">Deviation (45%)</div>
+              <div className="text-slate-400">Deviation Score</div>
               <div className="font-bold text-slate-800 mt-0.5">{evidence.deviation_score}</div>
             </div>
             <div className="bg-white p-1.5 rounded border border-slate-200">
-              <div className="text-slate-400">Persistence (25%)</div>
+              <div className="text-slate-400">Persistence Score</div>
               <div className="font-bold text-slate-800 mt-0.5">{evidence.persistence_score}</div>
             </div>
             <div className="bg-white p-1.5 rounded border border-slate-200">
-              <div className="text-slate-400">Trend (20%)</div>
+              <div className="text-slate-400">Trend Score</div>
               <div className="font-bold text-slate-800 mt-0.5">{evidence.trend_score}</div>
             </div>
             <div className="bg-white p-1.5 rounded border border-slate-200">
-              <div className="text-slate-400">Loss (10%)</div>
+              <div className="text-slate-400">Estimated-Loss Score</div>
               <div className="font-bold text-slate-800 mt-0.5">{evidence.loss_score}</div>
             </div>
           </div>

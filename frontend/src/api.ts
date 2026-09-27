@@ -1,29 +1,62 @@
 import {
   ApiResponse, Meter, Reading, Alert, AnalyzeResult,
-  DashboardSummary, ExplainResponse, DemoScenarioResult
+  DashboardSummary, ExplainResponse, DemoScenarioResult, EvaluationBenchmarkResult,
+  WaterImpactSummaryResponse, UserProfile, LoginResponse, DemoAccount
 } from './types';
 
-let currentAuthToken: string = '';
+const TOKEN_STORAGE_KEY = 'jalrakshak_auth_token';
+
+let currentAuthToken: string = typeof window !== 'undefined' ? (sessionStorage.getItem(TOKEN_STORAGE_KEY) || '') : '';
+let unauthorizedHandler: (() => void) | null = null;
 
 export function setAuthToken(token: string) {
   currentAuthToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) {
+      sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+    } else {
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  }
+}
+
+export function clearAuthToken() {
+  currentAuthToken = '';
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+  }
 }
 
 export function getAuthToken(): string {
+  if (!currentAuthToken && typeof window !== 'undefined') {
+    currentAuthToken = sessionStorage.getItem(TOKEN_STORAGE_KEY) || '';
+  }
   return currentAuthToken;
+}
+
+export function onUnauthorized(handler: () => void) {
+  unauthorizedHandler = handler;
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers || {});
   headers.set('Content-Type', 'application/json');
-  if (currentAuthToken) {
-    headers.set('Authorization', `Bearer ${currentAuthToken}`);
+  const token = getAuthToken();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   const response = await fetch(endpoint, {
     ...options,
     headers,
   });
+
+  if (response.status === 401 && endpoint !== '/api/auth/login') {
+    clearAuthToken();
+    if (unauthorizedHandler) {
+      unauthorizedHandler();
+    }
+  }
 
   const payload: ApiResponse<T> = await response.json();
 
@@ -115,4 +148,33 @@ export const api = {
 
   // Dashboard
   getDashboardSummary: () => request<DashboardSummary>('/api/dashboard/summary'),
+
+  // Evaluation Benchmark
+  runEvaluation: (seed: number = 42) =>
+    request<EvaluationBenchmarkResult>('/api/evaluation/run', {
+      method: 'POST',
+      body: JSON.stringify({ seed }),
+    }),
+  getEvaluationBenchmark: (seed: number = 42) =>
+    request<EvaluationBenchmarkResult>(`/api/evaluation/benchmark?seed=${seed}`),
+
+  // Water Impact
+  getWaterImpact: (avoidedFraction: number = 0.70, meterId?: string) => {
+    const params = new URLSearchParams();
+    params.set('avoided_fraction', avoidedFraction.toString());
+    if (meterId) {
+      params.set('meter_id', meterId);
+    }
+    return request<WaterImpactSummaryResponse>(`/api/dashboard/water-impact?${params.toString()}`);
+  },
+
+  // Auth
+  login: (email: string, password?: string) =>
+    request<LoginResponse>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  getMe: () => request<UserProfile>('/api/auth/me'),
+  logout: () => request<{ message: string }>('/api/auth/logout', { method: 'POST' }),
+  getDemoAccounts: () => request<DemoAccount[]>('/api/auth/demo-accounts'),
 };

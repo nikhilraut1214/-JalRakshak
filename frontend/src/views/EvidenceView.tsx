@@ -77,7 +77,7 @@ export const EvidenceView: React.FC<EvidenceViewProps> = ({ language }) => {
               </div>
               {a.evidence && (
                 <EvidenceCard
-                  evidence={a.evidence as any}
+                  evidence={a.evidence}
                   title={`Incident Evidence Packet (${a.status})`}
                   showBreakdown={true}
                 />

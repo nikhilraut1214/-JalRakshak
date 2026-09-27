@@ -114,6 +114,8 @@ def analyze_meter(
                 active_alert.evidence.estimated_excess_liters = evidence_packet.estimated_excess_liters
                 active_alert.evidence.risk_score = evidence_packet.risk_score
                 active_alert.evidence.severity = evidence_packet.severity
+                active_alert.evidence.verification_required = evidence_packet.verification_required
+                active_alert.evidence.raw_evidence_json = analytics_output
             db.commit()
             db.refresh(active_alert)
 

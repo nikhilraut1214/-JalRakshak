@@ -77,7 +77,7 @@ def compute_baseline_and_anomaly(
     # 5. Estimated Excess
     # estimated_excess_liters = max(observed_liters - expected_liters, 0) * persistence_intervals
     single_excess = max(0.0, current_val - median)
-    estimated_excess_liters = float(single_excess * max(1, persistence_intervals))
+    estimated_excess_liters = float(single_excess * persistence_intervals)
 
     # 6. Risk Normalization (All components 0-100)
     # Deviation score

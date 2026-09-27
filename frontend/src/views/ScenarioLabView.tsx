@@ -33,7 +33,7 @@ export const ScenarioLabView: React.FC<ScenarioLabViewProps> = ({
       id: 'SINGLE_SPIKE',
       name: 'Single Transient Spike',
       expected: 'ISOLATED_EVENT',
-      desc: 'Normal baseline followed by a single transient spike (e.g. tank fill or vehicle wash).',
+      desc: 'Normal baseline followed by a single transient spike (persistence ~1, warning/MEDIUM severity).',
     },
     {
       id: 'PERSISTENT_LEAK',
@@ -45,13 +45,13 @@ export const ScenarioLabView: React.FC<ScenarioLabViewProps> = ({
       id: 'BURST_USE',
       name: 'High-Volume Burst',
       expected: 'HIGH_VOLUME_BURST',
-      desc: 'Sudden extreme continuous draw lasting 2-3 intervals.',
+      desc: 'Sudden extreme surge spanning 2-3 consecutive intervals followed by explicit recovery to baseline.',
     },
     {
       id: 'FARM_IRRIGATION',
       name: 'Farm Irrigation Run',
       expected: 'SCHEDULED_IRRIGATION',
-      desc: 'Scheduled high-volume agricultural pumping cycles in a rural farm meter.',
+      desc: 'Scheduled cyclical agricultural pumping run (04:00-08:00) with contextual schedule awareness.',
     },
     {
       id: 'DATA_QUALITY',
@@ -175,6 +175,16 @@ export const ScenarioLabView: React.FC<ScenarioLabViewProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {scenarioResult.operational_schedule && (
+                <span className="px-2 py-0.5 text-[11px] font-medium rounded-md bg-cyan-50 text-cyan-800 border border-cyan-200">
+                  Schedule: {scenarioResult.operational_schedule}
+                </span>
+              )}
+              {scenarioResult.meter_type && scenarioResult.meter_type !== 'water' && (
+                <span className="px-2 py-0.5 text-[11px] font-medium rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                  Type: {scenarioResult.meter_type}
+                </span>
+              )}
               <span className="text-xs font-semibold text-slate-600">Ground Truth:</span>
               <span className="px-2.5 py-1 text-xs font-mono font-bold rounded-md bg-slate-100 text-slate-800 border border-slate-200">
                 {scenarioResult.ground_truth}

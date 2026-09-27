@@ -7,7 +7,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from backend.app.config import settings
 from backend.app.database import engine, Base
 from backend.app.routers import (
-    health, meters, readings, analyze, alerts, explain, demo, dashboard
+    health, auth, meters, readings, analyze, alerts, explain, demo, dashboard, evaluation
 )
 
 # Initialize database tables
@@ -89,6 +89,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
 
 # Include all canonical routers
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(meters.router)
 app.include_router(readings.router)
 app.include_router(analyze.router)
@@ -96,6 +97,7 @@ app.include_router(alerts.router)
 app.include_router(explain.router)
 app.include_router(demo.router)
 app.include_router(dashboard.router)
+app.include_router(evaluation.router)
 
 if __name__ == "__main__":
     import uvicorn

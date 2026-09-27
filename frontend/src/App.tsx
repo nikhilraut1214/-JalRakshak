@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SupportedLanguage } from './i18n';
+import { api, getAuthToken, clearAuthToken, onUnauthorized } from './api';
+import { UserProfile } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
+import { LoginView } from './views/LoginView';
 import { DashboardView } from './views/DashboardView';
 import { MetersView } from './views/MetersView';
 import { ReadingsView } from './views/ReadingsView';
@@ -12,11 +15,54 @@ import { ScenarioLabView } from './views/ScenarioLabView';
 import { EvaluationView } from './views/EvaluationView';
 import { WaterImpactView } from './views/WaterImpactView';
 import { SettingsView } from './views/SettingsView';
+import { RefreshCw } from 'lucide-react';
+
+type AuthState = 'AUTH_LOADING' | 'AUTHENTICATED' | 'UNAUTHENTICATED';
 
 export function App() {
+  const [authState, setAuthState] = useState<AuthState>('AUTH_LOADING');
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [activeModule, setActiveModule] = useState<string>('dashboard');
   const [language, setLanguage] = useState<SupportedLanguage>('en-IN');
-  const [currentRole, setCurrentRole] = useState<string>('RESIDENT');
+
+  useEffect(() => {
+    onUnauthorized(() => {
+      clearAuthToken();
+      setCurrentUser(null);
+      setAuthState('UNAUTHENTICATED');
+    });
+
+    const initAuth = async () => {
+      const token = getAuthToken();
+      if (!token) {
+        setAuthState('UNAUTHENTICATED');
+        return;
+      }
+      try {
+        const user = await api.getMe();
+        setCurrentUser(user);
+        setAuthState('AUTHENTICATED');
+      } catch {
+        clearAuthToken();
+        setCurrentUser(null);
+        setAuthState('UNAUTHENTICATED');
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // Best-effort logout
+    } finally {
+      clearAuthToken();
+      setCurrentUser(null);
+      setAuthState('UNAUTHENTICATED');
+    }
+  };
 
   const renderActiveView = () => {
     switch (activeModule) {
@@ -45,6 +91,28 @@ export function App() {
     }
   };
 
+  if (authState === 'AUTH_LOADING') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="flex items-center gap-2.5 text-sky-700 font-semibold text-xs bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+          <RefreshCw className="w-4 h-4 animate-spin text-sky-600" />
+          <span>Verifying cryptographic session...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (authState === 'UNAUTHENTICATED' || !currentUser) {
+    return (
+      <LoginView
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          setAuthState('AUTHENTICATED');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar
@@ -56,8 +124,8 @@ export function App() {
         <Header
           language={language}
           onLanguageChange={setLanguage}
-          currentRole={currentRole}
-          onRoleChange={setCurrentRole}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
         <main className="flex-1 overflow-y-auto">
           {renderActiveView()}

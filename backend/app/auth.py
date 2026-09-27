@@ -56,27 +56,11 @@ def get_current_user(
     - Rejects unauthenticated requests
     """
     if not credentials:
-        # In production, authentication is strictly required. No dev fallback can ever run.
-        if settings.ENVIRONMENT.lower() == "production":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required: Bearer JWT access token is missing.",
-                headers={"WWW-Authenticate": "Bearer"}
-            )
-
-        # Development/testing fallback only when ENVIRONMENT != "production"
-        dev_email = "dev-resident@jalrakshak.local"
-        user = db.query(User).filter(User.email == dev_email).first()
-        if not user:
-            user = User(
-                email=dev_email,
-                role="RESIDENT",
-                organization_id=settings.DEFAULT_ORG_ID
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        return user
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required: Bearer JWT access token is missing.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
     token = credentials.credentials
     payload = decode_token(token)

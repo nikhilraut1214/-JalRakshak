@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, ExplainResponse } from '../types';
 import { SeverityBadge } from './SeverityBadge';
+import { EvidenceCard } from './EvidenceCard';
 import { api } from '../api';
 import { translations, SupportedLanguage } from '../i18n';
 import { X, CheckCircle, ShieldAlert, Bot, FileText, ChevronRight, AlertCircle, Wrench } from 'lucide-react';
@@ -98,29 +99,15 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
 
           {/* Section 1: What Changed & Measured Evidence */}
           {ev ? (
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Deterministic Evidence Breakdown</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <div className="text-xs text-slate-500">Current Reading</div>
-                  <div className="text-base font-bold text-slate-900 mt-0.5">{ev.current_usage_liters} L</div>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <div className="text-xs text-slate-500">Baseline Expected</div>
-                  <div className="text-base font-bold text-slate-900 mt-0.5">{ev.baseline_liters} L</div>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <div className="text-xs text-slate-500">Deviation</div>
-                  <div className="text-base font-bold text-rose-600 mt-0.5">+{ev.deviation_pct}%</div>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <div className="text-xs text-slate-500">Estimated Excess</div>
-                  <div className="text-base font-bold text-amber-700 mt-0.5">{ev.estimated_excess_liters} L</div>
-                </div>
-              </div>
-            </div>
+            <EvidenceCard
+              evidence={ev}
+              title="Deterministic Canonical Evidence Breakdown"
+              showBreakdown={true}
+            />
           ) : (
-            <div className="text-sm text-slate-500 italic">No structured evidence recorded for this incident.</div>
+            <div className="text-sm text-slate-500 italic p-4 bg-slate-50 rounded-lg border border-slate-200">
+              No structured evidence recorded for this incident.
+            </div>
           )}
 
           {/* Section 2: AI / Deterministic Explanation Card */}
